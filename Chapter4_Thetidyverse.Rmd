@@ -1,9 +1,11 @@
 ---
-title: "R Notebook"
-output:
-  html_document:
-    df_print: paged
-  pdf_document: default
+---
+output: 
+  html_notebook: 
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
 ---
 
 
@@ -588,7 +590,7 @@ Let’s now explore the NHANES data.
 ref<-NHANES%>%
   filter(AgeDecade==" 20-29")%>%
   summarize(average=mean(BPSysAve,na.rm=TRUE),standard_deviation=sd(BPSysAve,na.rm = TRUE))
-ref
+ref%>%pander
 ```
 
 2. Using a pipe, assign the average to a numeric variable ref_avg. Hint: Use the code similar to above and then pull.
@@ -616,7 +618,7 @@ female_group<-NHANES%>%
   filter(Gender=="female")%>%
   group_by(AgeDecade)%>%
   summarize(average=mean(BPSysAve,na.rm=TRUE),standard_deviation=sd(BPSysAve,na.rm = TRUE))
-female_group
+female_group%>%pander
 ```
 
 5. Repeat exercise 4 for males.
@@ -626,7 +628,7 @@ male_group<-NHANES%>%
   filter(Gender=="male")%>%
   group_by(AgeDecade)%>%
   summarize(average=mean(BPSysAve,na.rm=TRUE),standard_deviation=sd(BPSysAve,na.rm = TRUE))
-male_group
+male_group%>%pander
 ```
 
 
@@ -636,7 +638,7 @@ male_group
 table1<-NHANES%>%
   group_by(AgeDecade,Gender)%>%
   summarize(average=mean(BPSysAve,na.rm=TRUE),standard_deviation=sd(BPSysAve,na.rm = TRUE))
-table1
+table1%>%pander
 ```
 
 
@@ -647,7 +649,7 @@ male_race<-NHANES%>%filter(AgeDecade==" 40-49", Gender=="male")%>%
   group_by(Race1)%>%
   summarize(average=mean(BPSysAve,na.rm=TRUE),standard_deviation=sd(BPSysAve,na.rm = TRUE))%>%
   arrange(average)
-male_race
+male_race%>%pander
 ```
 
 
@@ -656,7 +658,7 @@ male_race
 Tidy data must be stored in data frames. We introduced the data frame in Section 2.4.1 and have been using the murders data frame throughout the book. In Section 4.7.3 we introduced the group_by function, which permits stratifying data before computing summary statistics. But where is the group information stored in the data frame?
 
 ```{r}
-murders%>%group_by(region)
+murders%>%group_by(region)%>%pander
 ```
 
 Notice that there are no columns with this information. But, if you look closely at the output above, you see the line A tibble followd by dimensions. We can learn the class of the returned object using:
@@ -870,7 +872,7 @@ murders%>%
     region=="South"~ "South",
     TRUE~"Other"))%>%
   group_by(group)%>%
-  summarize(rate=sum(total)/sum(population)*10^5)
+  summarize(rate=sum(total)/sum(population)*10^5)%>%pander
 ```
 
 
@@ -913,7 +915,7 @@ murders_tibble<-as_tibble(murders)
 3. Use the group_by function to convert murders into a tibble that is grouped by region.
 
 ```{r}
-murders_tibble%>%group_by(region)
+murders_tibble%>%group_by(region)%>%pander
 ```
 
 4. Write tidyverse code that is equivalent to this code:
@@ -922,7 +924,7 @@ murders_tibble%>%group_by(region)
 exp(mean(log(murders$population)))
 ```
 
-Write it using the pipe so that each function is called without arguments. Use the dot operator to access the population. Hint: The code should start with murders %>%.
+Write it using the pipe so that each function is called without arguments. Use the dot operator to access the population. Hint: The code should start with murders %>%.  
 
 ```{r}
 murders%>%
