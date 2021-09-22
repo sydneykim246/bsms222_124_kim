@@ -24,6 +24,7 @@ The summarize function in dplyr provides a way to compute summary statistics wit
 library(dplyr)
 library(dslabs)
 data(heights)
+
 ```
 
 
@@ -600,6 +601,12 @@ murders%>%
 5. Use the map_df to create a data frame with three columns named n, s_n, and s_n_2. The first column should contain the numbers 1 through 100. The second and third columns should each contain the sum of 1 through $n$ with $n$ the row number.
 
 ```{r}
-
+compute_s_n<-function(n){
+  x<-1:n
+  tibble(n=n,s_n=sum(x),s_n_2=sum(x))
+}
+df<-map_df(n,compute_s_n)
+n<-1:100
+df
 ```
 
