@@ -2,7 +2,12 @@
 title: "R Notebook"
 output:
   html_document:
+    toc: yes
     df_print: paged
+  html_notebook:
+    toc: yes
+editor_options:
+  chunk_output_type: inline
 ---
 ---
 title: "Chapter 4.7_4.15"
@@ -12,6 +17,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
 
 
 
