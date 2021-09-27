@@ -249,6 +249,7 @@ head(d%>%mutate(Ptnnumb=gsub('[^0-9]','',d$p.Protein)))
 ```
 
 
+
 ## 3.2. Counting the recurrent mutations
 
 Recurrent mutations are the ones that the same genetic mutations occur in multiple individuals. Recurrent mutations can be common 1) when the mutation does not affect on natural selection, 2) when the mutation is beneficial, 3) in the hotspot for a disease or strongly associated with trait. However, given we are dealing with the genetic mutations from rare disorders, the mutations in the dataset are supposed to be uniquely present in general population. Otherwise, the recurrent mutations can indicate strong association with the phenotype.
