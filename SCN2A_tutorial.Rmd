@@ -376,6 +376,7 @@ new%>%filter(Freq>1)
 ```
 
 
+
 ## 3.5 Sketch a plot to visualize your analysis
 
 When you examine the dataset, you would draw something to show your output. Though we haven't learnt how to plot data yet, we can have a quick sketch for the dataset. There's no restriction on your suggestion. Please submit your hand-drawing for the plot you would like to show from this dataset.
