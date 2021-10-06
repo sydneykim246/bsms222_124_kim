@@ -228,6 +228,7 @@ Based on this plot, how many males are between 63.5 and 65.5?
 
 Which of the following statements is true:
 
+
 ```{r}
 # answer: d. They are the same dataset, but the first is not in the log scale, the second undersmooths, and the third oversmooths.
 ```
