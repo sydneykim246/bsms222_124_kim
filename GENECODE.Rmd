@@ -310,7 +310,8 @@ d2%>%group_by(chrom)%>%count(gene_id)%>%
 1. What is the average length of human genes?
 
 ```{r}
-# make length column by end-start+1
+# make length column by end-start+1 
+##(or you can use 'width' column by importing data through rtracklayer)
 d$length<-d$end-d$start+1
 
 #calculate average
@@ -359,6 +360,7 @@ d%>%filter(feature_type=="gene")%>%
   group_by(gene_type)%>%
   summarize(zero_to_hundred(length))
 ```
+
 ```{r}
 # The distribution varies among biotypes. 
 # translated_unprocessed_pseudogene, protein_coding biotypes look like the longest gene length.
