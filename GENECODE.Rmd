@@ -310,12 +310,10 @@ d2%>%group_by(chrom)%>%count(gene_id)%>%
 1. What is the average length of human genes?
 
 ```{r}
-# make length column by end-start+1 
-##(or you can use 'width' column by importing data through rtracklayer)
-d$length<-d$end-d$start+1
+# d246 is the data imported through rtracklayer
 
 #calculate average
-mean(d%>%filter(feature_type=="gene")%>%pull(length))
+mean(d246%>%filter(type=="gene")%>%pull(width))
 ```
 
 2. Is the distribution of gene length differed by autosomal and sex chromosomes? Please calculate the quantiles (0%, 25%, 50%, 75%, 100%) of the gene length for each group.
@@ -331,10 +329,10 @@ zero_to_hundred<-function(x){
 
 ```{r}
 #calculate quantiles of gene length for chrom_type
-d%>%filter(chrom!="chrM",feature_type=="gene")%>%
-  mutate(chrom_type=ifelse(chrom%in%c("chrx","chrY"),"sex_chr","autosomal_chr"))%>%
+d246%>%filter(sequence!="chrM",type=="gene")%>%
+  mutate(chrom_type=ifelse(sequence%in%c("chrx","chrY"),"sex_chr","autosomal_chr"))%>%
   group_by(chrom_type)%>%
-  summarize(zero_to_hundred(length))
+  summarize(zero_to_hundred(width))
            
 ```
 
@@ -356,9 +354,9 @@ mutate(gene_type=as.character(do.call(rbind.data.frame, strsplit(d$gene_type, '\
 
 ```{r}
 #calculate quantiles of gene length for gene_type
-d%>%filter(feature_type=="gene")%>%
+d246%>%filter(type=="gene")%>%
   group_by(gene_type)%>%
-  summarize(zero_to_hundred(length))
+  summarize(zero_to_hundred(width))
 ```
 
 ```{r}
@@ -454,10 +452,10 @@ d2%>%count(gene_id)%>%summarize(largest=gene_id[which.max(n)])
 2. Please calculate the quantiles (0%, 25%, 50%, 75%, 100%) of the gene length for protein coding genes and long noncoding genes.
 
 ```{r}
-d%>%
-  filter(feature_type=="gene",gene_type%in%c("lncRNA","protein_coding"))%>%
+d246%>%
+  filter(type=="gene",gene_type%in%c("lncRNA","protein_coding"))%>%
   group_by(gene_type)%>%
-  summarize(zero_to_hundred(length))
+  summarize(zero_to_hundred(width))
 ```
 
 
@@ -499,6 +497,7 @@ d%>%filter(feature_type=="gene",
            gene_type%in%c("lncRNA","protein_coding"))%>%
   group_by(chrom)%>%
   count(gene_type)
+
 ```
 
 

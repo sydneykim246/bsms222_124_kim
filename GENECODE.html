@@ -493,7 +493,7 @@ d2$transcript_support_level &lt;- as.character(do.call(rbind.data.frame,
 <ol style="list-style-type: decimal">
 <li>Computes the number of transcripts per gene. What is the mean number of transcripts per gene? What is the quantile (25%, 50%, 75%) for these numbers? Which gene has the greatest number of transcript?</li>
 </ol>
-<pre class="r"><code>#add new column
+<pre class="r"><code>#add new column &quot;gene_id&quot;
 d2&lt;-d2%&gt;%
 mutate(gene_id=as.character(do.call(rbind.data.frame, strsplit(d2$info,&#39;gene_id\\s+&quot;&#39;))[[2]]))
 d2&lt;-d2%&gt;%
@@ -557,12 +557,15 @@ d2%&gt;%group_by(chrom)%&gt;%count(gene_id)%&gt;%
 <ol style="list-style-type: decimal">
 <li>What is the average length of human genes?</li>
 </ol>
-<pre class="r"><code># make length column by end-start+1 
-##(or you can use &#39;width&#39; column by importing data through rtracklayer)
-d$length&lt;-d$end-d$start+1
+<pre class="r"><code># d246 is the data imported through rtracklayer. for &#39;length&#39;, I used the column &#39;width&#39;.
+#load data through rtracklayer
+library(rtracklayer)
+d246 &lt;-import(&#39;gencode.v31.basic.annotation.gtf.gz&#39;)
+d246=d246%&gt;%as.data.frame()
 
-#calculate average
-mean(d%&gt;%filter(feature_type==&quot;gene&quot;)%&gt;%pull(length))</code></pre>
+## or you can add a width column by calculating end-start+1. +1 is needed because gencode is 1based.</code></pre>
+<pre class="r"><code>#calculate average
+mean(d246%&gt;%filter(type==&quot;gene&quot;)%&gt;%pull(width))</code></pre>
 <pre><code>## [1] 32629.02</code></pre>
 <ol start="2" style="list-style-type: decimal">
 <li>Is the distribution of gene length differed by autosomal and sex chromosomes? Please calculate the quantiles (0%, 25%, 50%, 75%, 100%) of the gene length for each group.</li>
@@ -570,15 +573,15 @@ mean(d%&gt;%filter(feature_type==&quot;gene&quot;)%&gt;%pull(length))</code></pr
 <pre class="r"><code># make function to show quantiles(0%, 25%, 50%, 75%, 100%)
 zero_to_hundred&lt;-function(x){
   qs&lt;-quantile(x,c(0,0.25,0.5,0.75,1))
-  data.frame(&quot;0%&quot;=qs[1],&quot;25%&quot;=qs[2],&quot;50%&quot;=qs[3],&quot;75%&quot;=qs[4],&quot;100%&quot;=qs[5])
+  data.frame(&quot;0%&quot;=qs[1],&quot;25%&quot;=qs[2],&quot;50%&quot;=qs[3],&quot;75%&quot;=qs[4],&quot;100%&quot;=qs[5],check.names=FALSE)
 }</code></pre>
 <pre class="r"><code>#calculate quantiles of gene length for chrom_type
-d%&gt;%filter(chrom!=&quot;chrM&quot;,feature_type==&quot;gene&quot;)%&gt;%
-  mutate(chrom_type=ifelse(chrom%in%c(&quot;chrx&quot;,&quot;chrY&quot;),&quot;sex_chr&quot;,&quot;autosomal_chr&quot;))%&gt;%
+d246%&gt;%filter(seqnames!=&quot;chrM&quot;,type==&quot;gene&quot;)%&gt;%
+  mutate(chrom_type=ifelse(seqnames%in%c(&quot;chrx&quot;,&quot;chrY&quot;),&quot;sex_chr&quot;,&quot;autosomal_chr&quot;))%&gt;%
   group_by(chrom_type)%&gt;%
-  summarize(zero_to_hundred(length))</code></pre>
+  summarize(zero_to_hundred(width))</code></pre>
 <pre><code>## # A tibble: 2 × 6
-##   chrom_type      X0.  X25.  X50.   X75.   X100.
+##   chrom_type     `0%` `25%` `50%`  `75%`  `100%`
 ##   &lt;chr&gt;         &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;
 ## 1 autosomal_chr     8   560  3627 25382. 2473537
 ## 2 sex_chr          64   734  2203 10121   741999</code></pre>
@@ -592,11 +595,11 @@ mutate(gene_type=as.character(do.call(rbind.data.frame, strsplit(d$info,&#39;gen
 d&lt;-d%&gt;%
 mutate(gene_type=as.character(do.call(rbind.data.frame, strsplit(d$gene_type, &#39;\\&quot;&#39;))[[1]]))</code></pre>
 <pre class="r"><code>#calculate quantiles of gene length for gene_type
-d%&gt;%filter(feature_type==&quot;gene&quot;)%&gt;%
+d246%&gt;%filter(type==&quot;gene&quot;)%&gt;%
   group_by(gene_type)%&gt;%
-  summarize(zero_to_hundred(length))</code></pre>
+  summarize(zero_to_hundred(width))</code></pre>
 <pre><code>## # A tibble: 40 × 6
-##    gene_type         X0.   X25.  X50.    X75.   X100.
+##    gene_type        `0%`  `25%` `50%`   `75%`  `100%`
 ##    &lt;chr&gt;           &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;
 ##  1 IG_C_gene         441  477.  4590.  5479.     8914
 ##  2 IG_C_pseudogene   248  313    317    734      5211
@@ -754,12 +757,12 @@ head(new_d)</code></pre>
 <ol start="2" style="list-style-type: decimal">
 <li>Please calculate the quantiles (0%, 25%, 50%, 75%, 100%) of the gene length for protein coding genes and long noncoding genes.</li>
 </ol>
-<pre class="r"><code>d%&gt;%
-  filter(feature_type==&quot;gene&quot;,gene_type%in%c(&quot;lncRNA&quot;,&quot;protein_coding&quot;))%&gt;%
+<pre class="r"><code>d246%&gt;%
+  filter(type==&quot;gene&quot;,gene_type%in%c(&quot;lncRNA&quot;,&quot;protein_coding&quot;))%&gt;%
   group_by(gene_type)%&gt;%
-  summarize(zero_to_hundred(length))</code></pre>
+  summarize(zero_to_hundred(width))</code></pre>
 <pre><code>## # A tibble: 2 × 6
-##   gene_type        X0.  X25.   X50.   X75.   X100.
+##   gene_type       `0%` `25%`  `50%`  `75%`  `100%`
 ##   &lt;chr&gt;          &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;
 ## 1 lncRNA            68 1874.  6272. 24774. 1375317
 ## 2 protein_coding   117 9632. 27212  70809  2473537</code></pre>
