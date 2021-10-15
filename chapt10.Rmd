@@ -544,6 +544,7 @@ names(us_contagious_diseases)
 ```
 
 
+
 We create a temporary object `dat` that stores only the measles data, includes a per 100,000 rate, orders states by average value of disease and removes Alaska and Hawaii since they only became states in the late 1950s. Note that there is a `weeks_reporting` column that tells us for how many weeks of the year data was reported. We have to adjust for that value when computing the rate.
 
 ```{r}
