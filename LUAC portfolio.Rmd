@@ -1,0 +1,201 @@
+---
+title: "MAPK Pathway Relation with Tumor Stages in EGFR Activating Mutations Focused on Druggable sites"
+
+output: html_document
+---
+
+
+# 1. Introduction
+
+MAPK(Mitogen-activated protien kinase) pathway regulates various key signalling pathways such as proliferation, differentiation and apoptosis by activating downstream proteins with phosphorylation through three main serine/threonine kinases: MAP3K, MAPKK,and MAPK[1](https://www.spandidos-publications.com/10.3892/etm.2020.8454). In Non small cell lung cancer(NSCLC), distinct overexpressions of MAPKs occurs, and this can suggest the members of the MAPK cascade's potential of acting as a biomarker of NSCLC patients[2](https://www.future-science.com/doi/10.4155/fmc-2018-0468). 
+
+In this multi-omics study Chen et al.(2020), three druggable phospho-proteins of MAPK cascade that can be targeted by a known inhibitor and can potentially act as a biomarker was identified : MAPK3_pT202","MAPK1_pT190","MAPK1_pT185;pT190" (MAPK druggable targets) [3](https://www.sciencedirect.com/science/article/pii/S0092867420307431#figs3). Since the increased phosphorylation of the MAPK pathway correlates with EGFR activating mutations, the possibility of MAPK druggable targets acting as a biomarker for non-smoking female Taiwan cohorts with EGFR mutations is highly anticapated.
+
+Therefore I plotted the phosphoproteomic data at phosphite level of MAPK druggable targets and found their relation with tumor stages to determine whether they can act as a biomarker to distinguish early/late tumor and provide a druggable site.
+
+# 2. Explore Data
+## 2.1 Unboxing and Manipulating dataset
+
+```{r}
+#load packages
+library(tidyverse)
+library(readxl)
+```
+
+
+First, let's load the data we need from the exel sheets of Chen et al.(2020).
+
+> Data needed
+1. S1a : Patient information (Supplementary 1A)
+2. S1G : Patient phosphoproteomic data (Supplementary 1G)
+3. S2E : Data including gene names for phosphorylation sites (Supplementary 2E)
+
+```{r}
+# Load data s1a,s1g from Supplementary1
+readxl::excel_sheets("1-s2.0-S0092867420307431-mmc1.xlsx")
+
+s1a<-read_excel("1-s2.0-S0092867420307431-mmc1.xlsx",sheet = 2, na="NA")
+s1g<-read_excel("1-s2.0-S0092867420307431-mmc1.xlsx",sheet = 8, na="NA")
+```
+
+```{r}
+# Load s2e from Supplementary2
+readxl::excel_sheets("1-s2.0-S0092867420307431-mmc2.xlsx")
+
+s2e<-read_excel("1-s2.0-S0092867420307431-mmc2.xlsx",sheet = 6)
+```
+
+Now let's merge s2e(contains gene names) with s1g(contains phosphoproteomic data) to name phosphorylation sites, by the MAPK druggable sites; "MAPK3_pT202","MAPK1_pT190","MAPK1_pT185;pT190".
+
+```{r}
+# Let's name this merged data as 'phosphosite'
+phosphosite<-merge(s1g,s2e%>%filter(`Gene name`%in%c("MAPK1","MAPK3")),na="NA")
+
+
+# This merged data has patient names as column names. We should inverse this data and make it into *tidy format*.
+# Rename the tidy data to 'data_phosphosite'
+data_phosphosite<-as.data.frame(t(phosphosite))
+colnames(data_phosphosite)<-c("MAPK3_pT202","MAPK1_pT190","MAPK1_pT185;pT190")
+data_phosphosite<-data_phosphosite[-c(1,82,83,84),]
+data_phosphosite<- cbind(ID = rownames(data_phosphosite), data_phosphosite)
+rownames(data_phosphosite) <- 1:nrow(data_phosphosite)
+```
+
+Now let's merge 'data_phosphosite' with s1a into 'data' and make the final data set form that we will be using for further plot making.
+
+```{r}
+# merge data
+data<-merge(data_phosphosite,s1a)
+```
+
+Let's now check the final data to see if we need any further alterations.
+
+```{r}
+# check final data
+str(data)
+```
+
+We can see that the three columns of MAPK druggable sites we merged has a class of 'character'. We must transform those columns into numeric because in our plot, these values should be continous.
+
+```{r}
+# make all the MAPK druggable site columns into numeric
+phospho.num <- c("MAPK3_pT202","MAPK1_pT190","MAPK1_pT185;pT190")
+data[phospho.num] <- sapply(data[phospho.num],as.numeric)
+sapply(data, class)
+```
+
+The class of three MAPK druggable sites are now all numeric. 
+
+## 2.2 Explore data for visualization
+
+After finishing manipulation of the dataset, exploring whether data for visualization is abundant is crucial. I want to visualize the correlation between tumor stages and the phosphorylation of MAPK druggable sites, so I counted how many patients in each stage exists with phosphorylation log2T/N values of MAPK druggable sites.
+
+```{r}
+# count number of patients in each stage 
+data%>%select(`MAPK1_pT185;pT190`,Stage)%>%count(Stage)
+data%>%select(`MAPK1_pT190`,Stage)%>%count(Stage)
+data%>%select(`MAPK3_pT202`,Stage)%>%count(Stage)
+```
+
+Compared to the early stage tumors(1A,1B), late stage tumors lacks quantity except for stage 3A. Therefore even if early-stage(1A,2B) and late-stage(3A) appear to have a discrete relation with MAPK druggable site phosphorylation, p-value must be calculated in order to support the result due to the relative lack of 2B, 2A, and stage 4 patient data.
+
+# 3. Data visualization
+
+```{r}
+#load packages
+library(ggplot2)
+library(ggridges)
+library(cowplot)
+library(ggpubr)
+```
+
+Here, `pivot_longer` is used for a side by side comparison of MAPK druggable sites using `facet_grid`. Patients are filtered to represent **the non-smoking female of TW cohort with EGFR Activating Mutations**. The MAPK druggable sites are found from DGIdb(http://www.dgidb.org/)which are highlighted in S6 of Chen et al. (2020). Density Plots are used with quantile lines that indicate 25%, 50%, 75% of the data. 
+
+```{r}
+data%>%
+  pivot_longer(cols = c("MAPK3_pT202","MAPK1_pT190",`MAPK1_pT185;pT190`),names_to = "MAPK_druggable",values_to = "Log2T/N")%>%
+  filter(EGFR_Status!="WT"&
+           `Smoking Status`=="Nonsmoke"&
+           Gender=="Female")%>%
+  ggplot(aes(`Log2T/N`,Stage))+
+  geom_density_ridges_gradient(aes(fill=stat(x)),scale=0.7,show.legend =NA)+
+  theme_bw()+
+  stat_density_ridges(quantile_lines = TRUE, quantiles = c(0.25, 0.5,0.75), alpha = 0.2,scale=0.7)+
+  scale_fill_viridis_c(name = "log2T/N", option = "plasma")+
+  labs(x="log2T/N",y="Stages",title="MAPK Druggable sites")+
+  facet_grid(.~MAPK_druggable)+
+  theme(axis.title.x = element_text(hjust = 0.5),axis.title.y = element_text(hjust = 0.5),
+        plot.title = element_text(hjust = 0.5))+
+  geom_text(aes(x=-0.1,y=0.95,label= "Q2"))+
+  geom_text(aes(x=-0.6,y=0.95,label= "Q1"))+
+  geom_text(aes(x=0.5,y=0.95,label= "Q3"))
+```
+
+We can identify in this plot that early stage NSCLC patients (IA,IB) have a higher phosphorylation of MAPK druggable sites compared to late stage patients. However, because of the lack of late stage data, p-value must be calculated between early stage and late stage. Therfore I made another plot after filtering only stage 1A,1B, and 3A, and calculated p-value. This plot was placed next to the former density plot for direct interpretation.
+
+
+```{r}
+# name former plot into 'plot1'
+plot1<-data%>%
+  pivot_longer(cols = c("MAPK3_pT202","MAPK1_pT190",`MAPK1_pT185;pT190`),names_to = "MAPK_druggable",values_to = "Log2T/N")%>%
+  filter(EGFR_Status!="WT"&
+           `Smoking Status`=="Nonsmoke"&
+           Gender=="Female")%>%
+  ggplot(aes(`Log2T/N`,Stage))+
+  geom_density_ridges_gradient(aes(fill=stat(x)),scale=0.7,show.legend =NA)+
+  theme_bw()+
+  stat_density_ridges(quantile_lines = TRUE, quantiles = c(0.25, 0.5,0.75), alpha = 0.2,scale=0.7)+
+  scale_fill_viridis_c(name = "log2T/N", option = "plasma")+
+  labs(x="log2T/N",y="Stages",title="MAPK Druggable sites")+
+  facet_grid(.~MAPK_druggable)+
+  theme(axis.title.x = element_text(hjust = 0.5),axis.title.y = element_text(hjust = 0.5),
+        plot.title = element_text(hjust = 0.5))+
+  geom_text(aes(x=-0.1,y=0.95,label= "Q2"))+
+  geom_text(aes(x=-0.6,y=0.95,label= "Q1"))+
+  geom_text(aes(x=0.5,y=0.95,label= "Q3"))
+
+
+#assign stages needed of comparison as `my_comparisons`
+my_comparisons<-list(c("IA","IIIA"),c("IB","IIIA"))
+
+#plot data with p value
+plot2<-data%>%
+  pivot_longer(cols = c("MAPK3_pT202","MAPK1_pT190","MAPK1_pT185;pT190"),names_to = "MAPK_druggable",values_to = "Log2T/N")%>%
+  filter(EGFR_Status!="WT"&
+           `Smoking Status`=="Nonsmoke"&
+           Gender=="Female"&
+           Stage%in%c("IA","IB","IIIA"))%>%
+  ggplot(aes(`Log2T/N`,Stage))+
+  geom_point(color = "lightgray")+
+  geom_boxplot(aes(fill=Stage),width=0.3,show.legend = FALSE)+
+  theme_bw()+
+  labs(x="log2T/N",y="Stage",title="MAPK Druggable")+
+  facet_grid(.~MAPK_druggable)+
+  theme(axis.title.x = element_text(hjust = 0.5),axis.title.y = element_text(hjust = 0.5))+
+  stat_compare_means(comparisons = my_comparisons)+
+  stat_compare_means(label.y = 50)
+
+# plot them together
+plot_grid(plot1,plot2,ncol = 1)
+```
+
+The box plot shows that between the MAPK druggable sites, **MAPK1_pT190** has a p-value lower than 0.05, 0.014 and 0.024 respectfully, for both comparisons of 1A-3A and 1B-3A, which indicates that **MAPK1_pT190** can act as a biomarker to distinguish tumor stage from early to late, and it also is a druggable target. MAPK3_pT202 also shows meaningful distingustion between stage 1A and 3A with a p-value of 0.0096, but does not have a p-value below 0.05 with stage 1B and 3A. Therefore, in conclusion, **MAPK1_pT190** is a suitable druggable target and a biomarker for tumor stages.
+
+# 3. Discussion
+
+Overall, we have indicated **MAPK1_pT190** as a significant drug target and biomarker for tumor stages between stage 1A/1B and stage 3A. Stage 1A and 1B in NSCLC defines as cancer that has not yet spread to lymph nodes, while Stage 3A indicates that cancer has spread to nearby lymph nodes in the chest[5](https://www.cancer.gov/publications/dictionaries/cancer-terms/def/stage-iiia-non-small-cell-lung-cancer). Therefore the diversion of early-stage 1A,1B and late-stage 3A can imply a significant meaning. 
+
+Although there was a meaningful p-value in the MAPK_pT202 between stage 1A and 3A with a p-value of 0.0096, relation between 1B and 3A was not found significant. Also relation between stage 4 tumor and early-stage tumor couldn't be visualized because of the lack of data in late stage tumors. With addition of late-stage tumor patient data in the future, more relations can be identified with these druggable MAPK pathway cascades and hopefully become cured. 
+
+
+# 4. Reference
+
+1. Guo, Y. J., Pan, W. W., Liu, S. B., Shen, Z. F., Xu, Y., & Hu, L. L. (2020). ERK/MAPK signalling pathway and tumorigenesis. Experimental and Therapeutic Medicine, 19(3), 1997-2007.
+
+2. Pradhan, R., Singhvi, G., Dubey, S. K., Gupta, G., & Dua, K. (2019). MAPK pathway: a potential target for the treatment of non-small-cell lung carcinoma.
+
+3. Chen, Y. J., Roumeliotis, T. I., Chang, Y. H., Chen, C. T., Han, C. L., Lin, M. H., ... & Chen, Y. J. (2020). Proteogenomics of non-smoking lung cancer in East Asia delineates molecular signatures of pathogenesis and progression. Cell, 182(1), 226-244.
+
+4. Lovly, C. M. (2015). Combating acquired resistance to tyrosine kinase inhibitors in lung cancer. American Society of Clinical Oncology Educational Book, 35(1), e165-e173.
+
+5. NCI Dictionary of Cancer terms. National Cancer Institute. (n.d.). Retrieved November 12, 2021, from https://www.cancer.gov/publications/dictionaries/cancer-terms/def/stage-ib-non-small-cell-lung-cancer. 

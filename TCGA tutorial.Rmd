@@ -454,6 +454,7 @@ bind_rows(d_luad %>%
 
 Is there difference in tumor stages by gender? Let’s check with LUSC.
 
+
 ```{r}
 bind_rows(d_luad%>%
             filter(shortLetterCode=='TP')%>%
